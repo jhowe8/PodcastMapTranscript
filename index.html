@@ -42,17 +42,18 @@
     </script>
     <style>
         body { margin:0; padding:0; }
-        /* #map { position:absolute; top:0; bottom:0; width:100%; } */
     </style>
 </head>
 <body style="background-color: #fff8e7;">
 
-<link rel="stylesheet" type="text/css" href="css/map.css">
+<button onclick="topFunction()" id="returnBtn" title="Go to top">Top</button>
 
+<link rel="stylesheet" type="text/css" href="css/map.css">
 
 <div id='map-container'>
     <div id='map'></div>
 
+    <div id='img-container'><img src="img/teacupmedialogo.png"/></div>
 
     <div class='map-overlay'>
         <fieldset>
@@ -91,22 +92,51 @@ var popup = new mapboxgl.Popup({
 var filterEl = document.getElementById('feature-filter');
 var listingEl = document.getElementById('feature-listing');
 
+function timeToID(podcastTime) {
+    var idAlphabet = 'abcdefghijklmnopqrstuvwxyz';
+    var timeSplit = podcastTime.split(":");
+    var count = parseInt(timeSplit[0], 10) * 3 + parseFloat(timeSplit[1]) / 20;
+    var i = Math.floor(count / 26);
+    var j = Math.floor(count % 26);
+    var code = idAlphabet[i] + idAlphabet[j];
+    return code;
+}
+
 function renderListings(features) {
     // Clear any existing listings
     listingEl.innerHTML = '';
     if (features.length) {
         features.forEach(function(feature) {
+
             var prop = feature.properties;
-            var item = document.createElement('a');
-            item.href = "www.google.com";
-            item.target = '_blank';
-            item.textContent = prop.name + ' (' + prop.timestamp + ')';
+            var i = 0;
+            //var timeLinks = document.createElement('a');
+            var timeLinks = document.createElement('div');
+
+            //timeLinks.textContent = '';
+            var times = prop.timestamp.split(',');
+            times.forEach(function() {
+                var individualTime = document.createElement('a');
+                individualTime.textContent = times[i];
+                individualTime.href = '#' + timeToID(times[i]);
+                individualTime.className = 'timeButton';
+                timeLinks.appendChild(individualTime);
+                i += 1;
+            });
+
+            var item = document.createElement('div');
+            item.textContent = prop.name;
+            item.className = 'sidenavinfo';
+            item.appendChild(timeLinks);
+            
             item.addEventListener('mouseover', function() {
                 // Highlight corresponding feature on the map
                 popup.setLngLat(feature.geometry.coordinates)
                     .setText(feature.properties.name + ' (' + feature.properties.timestamp + ')')
                     .addTo(map);
             });
+            
+            //console.log(item);
             listingEl.appendChild(item);
         });
 
@@ -160,7 +190,6 @@ map.on('load', function() {
             // Store the current features in sn `airports` variable to
             // later use for filtering on `keyup`.
             visiblePOI = uniqueFeatures;
-            console.log(visiblePOI);
         }
     });
 
@@ -171,7 +200,7 @@ map.on('load', function() {
         // Populate the popup and set its coordinates based on the feature.
         var feature = e.features[0];
         popup.setLngLat(feature.geometry.coordinates)
-            .setText(feature.properties.name + ' (' + feature.properties.timestamp + ')')
+            .setText(feature.properties.name)
             .addTo(map);
     });
 
@@ -180,11 +209,12 @@ map.on('load', function() {
         popup.remove();
     });
     
+    
     filterEl.addEventListener('keyup', function(e) {
         var value = normalize(e.target.value);
 
         // Filter visible features that don't match the input value.
-        var filtered = hkhthreepoints.filter(function(feature) {
+        var filtered = visiblePOI.filter(function(feature) {
             var name = normalize(feature.properties.name);
             var code = normalize(feature.properties.timestamp);
             return name.indexOf(value) > -1 || code.indexOf(value) > -1;
@@ -194,16 +224,31 @@ map.on('load', function() {
         renderListings(filtered);
 
         // Set the filter to populate features into the layer.
-        map.setFilter('hkhthreepoints', ['match', ['get', 'timestamp'], filtered.map(function(feature) {
+        map.setFilter('hkhthreepoints', ['match', ['get', 'name'], filtered.map(function(feature) {
             return feature.properties.code;
         }), true, false]);
     });
+    
 
     // Call this function on initialization
     // passing an empty array to render an empty state
     renderListings([]);
 });
 
+window.onscroll = function() {scrollFunction()};
+
+function scrollFunction() {
+  if (document.body.scrollTop > 400 || document.documentElement.scrollTop > 400) {
+    document.getElementById("returnBtn").style.display = "block";
+  } else {
+    document.getElementById("returnBtn").style.display = "none";
+  }
+}
+
+function topFunction() {
+  document.body.scrollTop = 0; // For Safari
+  document.documentElement.scrollTop = 0; // For Chrome, Firefox, IE and Opera
+}
 
 </script>
 
